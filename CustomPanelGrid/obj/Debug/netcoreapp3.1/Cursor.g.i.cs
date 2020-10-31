@@ -69,7 +69,7 @@ namespace CustomPanelGrid {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/CustomPanelGrid;V1.0.0.0;component/cursor.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/CustomPanelGrid;component/cursor.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\Cursor.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -37,34 +36,6 @@ namespace CustomPanelGrid
 
 			}
 
-
-
-
-
-		internal struct GridLocation
-			{
-			public int Row;
-			public int Column;
-			public static GridLocation Substraction ( GridLocation A , GridLocation B )
-				{
-				return new GridLocation
-					{
-					Row=A.Row-B.Row ,
-					Column=A.Column-B.Column
-					};
-
-				}
-			}
-		GridLocation activeCell;
-		private void SetActiveCell ( GridLocation gridLocation )
-			{
-			Grid.SetColumn ( Frame , gridLocation.Column );
-			Grid.SetRow ( Frame , gridLocation.Row );
-			activeCell=gridLocation;
-			}
-		private GridLocation GetActiveCell ( ) { return activeCell; }
-
-		//PreviewMouseLeftButtonDown="FrameMoveOnClick"  Background="Transparent" MouseLeftButtonUp="MyPanel_MouseLeftButtonUp" 
 		#region Parent Grid Setup
 		private static Grid GetParentGrid ( DependencyObject child )
 			{
@@ -95,8 +66,36 @@ namespace CustomPanelGrid
 			}
 		#endregion
 
+		internal struct GridLocation
+			{
+			public int Row;
+			public int Column;
+			public static GridLocation Substraction ( GridLocation A , GridLocation B )
+				{
+				return new GridLocation
+					{
+					Row=A.Row-B.Row ,
+					Column=A.Column-B.Column
+					};
+				}
 
-		private void MoveCursor ( System.Windows.Input.KeyEventArgs e )
+			}
+		GridLocation activeCell;
+		private void SetActiveCell ( GridLocation gridLocation )
+			{
+			Grid.SetColumn ( Frame , gridLocation.Column );
+			Grid.SetRow ( Frame , gridLocation.Row );
+			activeCell=gridLocation;
+			}
+		private void SetActiveCell ( )
+			{
+			activeCell.Column=Grid.GetColumn ( Frame );
+			activeCell.Row=Grid.GetRow ( Frame );
+			}
+		private GridLocation GetActiveCell ( ) { return activeCell; }
+
+
+		private GridLocation MoveCursor ( System.Windows.Input.KeyEventArgs e , GridLocation actualLocation )
 			{
 			switch ( e.Key )
 				{
@@ -112,14 +111,14 @@ namespace CustomPanelGrid
 				case System.Windows.Input.Key.Down:
 					Grid.SetRow ( Frame , Grid.GetRow ( Frame )+1 );
 					break;
-
 				}
+			actualLocation.Row=Grid.GetRow ( Frame );
+			actualLocation.Column=Grid.GetColumn ( Frame );
+			return actualLocation;
 			}
 		private void MoveCursor ( object sender , System.Windows.Input.KeyEventArgs e )
 			{
-			GridLocation actualLocation;
-			actualLocation.Column=Grid.GetColumn ( Frame );
-			actualLocation.Row=Grid.GetRow ( Frame );
+			GridLocation actualLocation = GetActiveCell ( );
 
 			if ( MyPanel.RowDefinitions.Count-1>=actualLocation.Row
 				&MyPanel.ColumnDefinitions.Count-1>=actualLocation.Column
@@ -128,30 +127,25 @@ namespace CustomPanelGrid
 				{
 				try
 					{
-					MoveCursor ( e );
+					actualLocation=MoveCursor ( e , actualLocation );
 					}
 				catch ( System.Exception ex )
 					{
 					SetActiveCell ( actualLocation );
-
 					}
 				finally
 					{
 
-					actualLocation=GetActiveCell ( );
-					if ( actualLocation.Row>MyPanel.RowDefinitions.Count-1 ) { Grid.SetRow ( Frame , MyPanel.RowDefinitions.Count-1 ); }
-					if ( actualLocation.Column>MyPanel.ColumnDefinitions.Count-1 ) { Grid.SetColumn ( Frame , MyPanel.ColumnDefinitions.Count-1 ); }
+					if ( actualLocation.Row>MyPanel.RowDefinitions.Count-1 ) { actualLocation.Row=MyPanel.RowDefinitions.Count-1; }
+					if ( actualLocation.Column>MyPanel.ColumnDefinitions.Count-1 ) { actualLocation.Column=MyPanel.ColumnDefinitions.Count-1; }
+					SetActiveCell ( actualLocation );
 					Frame.Focus ( );
-					e.Handled=true;
+
 					}
 				}
-
-
-
+			e.Handled=true;
 			}
-		private delegate void GetMouseLocationDelegate ( Grid panel );
 
-		[STAThread]
 		private static GridLocation GetMouseLocation ( Grid panel )
 			{
 			var point = Mouse.GetPosition ( panel );
@@ -183,39 +177,23 @@ namespace CustomPanelGrid
 			}
 		private void FrameMoveOnClick ( object sender , System.Windows.Input.MouseButtonEventArgs e )
 			{
-				{
-
-				GridLocation mouseLocation;
-				mouseLocation=GetMouseLocation ( MyPanel );
-				SetActiveCell ( mouseLocation );
-				Frame.Focus ( );
-
-				}
+			MoveFrameToMouse ( );
 			}
-		bool mouseHold = false;
-		GridLocation location;
-
-		private void DragState ( )
+		private void MoveFrameToMouse ( )
 			{
-			do
-				{
-				location=GetMouseLocation ( MyPanel );
-				Grid.SetColumn ( Frame , location.Column );
-				Grid.SetRow ( Frame , location.Row );
-				} while ( mouseHold );
-			mouseHold=false;
+			GridLocation mouseLocation;
+			mouseLocation=GetMouseLocation ( MyPanel );
+			SetActiveCell ( mouseLocation );
+			Frame.Focus ( );
 			}
 
 		private void MouseLeftButtonHold ( object sender , MouseButtonEventArgs e )
 			{
-			mouseHold=true;
-
-			Task Hold = new Task ( DragState );
 
 			}
 		private void MouseLeftButtonRelease ( object sender , MouseButtonEventArgs e )
 			{
-			mouseHold=false;
+
 			}
 
 		private void RenderTransformCursor ( GridLocation finalLocation )
