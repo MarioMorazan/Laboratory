@@ -27,11 +27,13 @@ C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\bin\Debug\netcore
 C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\bin\Debug\netcoreapp3.1\CustomPanelGrid.dll
 C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\bin\Debug\netcoreapp3.1\CustomPanelGrid.pdb
 C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcoreapp3.1\CustomPanelGrid.csprojAssemblyReference.cache
+C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcoreapp3.1\Cursor.g.cs
 C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcoreapp3.1\MainWindow.g.cs
 C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcoreapp3.1\App.g.cs
 C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcoreapp3.1\GeneratedInternalTypeHelper.g.cs
 C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcoreapp3.1\CustomPanelGrid_MarkupCompile.cache
 C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcoreapp3.1\CustomPanelGrid_MarkupCompile.lref
+C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcoreapp3.1\Cursor.baml
 C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcoreapp3.1\MainWindow.baml
 C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcoreapp3.1\CustomPanelGrid.g.resources
 C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcoreapp3.1\CustomPanelGrid.AssemblyInfoInputs.cache
@@ -40,5 +42,3 @@ C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcore
 C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcoreapp3.1\CustomPanelGrid.dll
 C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcoreapp3.1\CustomPanelGrid.pdb
 C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcoreapp3.1\CustomPanelGrid.genruntimeconfig.cache
-C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcoreapp3.1\CursorBox.g.cs
-C:\Users\Mario Morazan\source\repos\Laboratory\CustomPanelGrid\obj\Debug\netcoreapp3.1\CursorBox.baml

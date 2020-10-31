@@ -7,66 +7,19 @@ using System.Windows.Media;
 
 namespace CustomPanelGrid
 	{
-
-
-	public static class UIHelper
-		{
-		public static T TryFindParent<T> ( this DependencyObject child )
-where T : DependencyObject
-			{
-			//get parent item
-			DependencyObject parentObject = GetParentObject ( child );
-
-			//we've reached the end of the tree
-			if ( parentObject==null ) return null;
-
-			//check if the parent matches the type we're looking for
-			T parent = parentObject as T;
-			if ( parent!=null )
-				{
-				return parent;
-				}
-			else
-				{
-				//use recursion to proceed with next level
-				return TryFindParent<T> ( parentObject );
-				}
-			}
-
-		public static DependencyObject GetParentObject ( DependencyObject child )
-			{
-			if ( child==null ) return null;
-			ContentElement contentElement = child as ContentElement;
-
-			if ( contentElement!=null )
-				{
-				DependencyObject parent = ContentOperations.GetParent ( contentElement );
-				if ( parent!=null ) return parent;
-
-				FrameworkContentElement fce = contentElement as FrameworkContentElement;
-				return fce!=null ? fce.Parent : null;
-				}
-
-			//if it's not a ContentElement, rely on VisualTreeHelper
-			return VisualTreeHelper.GetParent ( child );
-			}
-		}
-
 	/// <summary>
-	/// Interaction logic for CursorBox.xaml
+	/// Interaction logic for Cursor.xaml
 	/// </summary>
-	public partial class CursorBox : UserControl
+	public partial class Cursor : UserControl
 		{
 
-		public CursorBox ( )
+		public Cursor ( )
 			{
 			InitializeComponent ( );
 			//Grid
-
-
 			try
 				{
-				var MyPanel = UIHelper.TryFindParent<Grid> ( this );
+				Grid MyPanel = GetParentGrid ( Frame );
 				}
 			catch ( System.Exception )
 				{
@@ -77,27 +30,42 @@ where T : DependencyObject
 			SetGridBackground ( MyPanel );
 
 
+
 			MyPanel.MouseLeftButtonDown+=FrameMoveOnClick;
 			MyPanel.MouseLeftButtonUp+=MouseLeftButtonRelease;
 			MyPanel.MouseLeave+=OnMouseLeaveGrid;
 			MyPanel.PreviewMouseLeftButtonDown+=MoveFrameToMouse;
 
-			//CursorBox Name=this
+			//Cursor Name=Frame
 			this.PreviewKeyDown+=MoveCursor;
 			this.KeyUp+=OnLeftShiftRealease;
 
 			ShiftTracker=new GridLocation { Row=-1 , Column=-1 };
-
 			}
 
-
-
-
-
-
-
 		#region Parent Grid Setup
+		private static Grid GetParentGrid ( DependencyObject child )
+			{
+			if ( child==null ) return null;
 
+			Grid foundParent = null;
+			var currentParent = VisualTreeHelper.GetParent ( child );
+
+			do
+				{
+				var frameworkElement = currentParent as FrameworkElement;
+				if ( frameworkElement is Grid )
+					{
+					foundParent=(Grid) currentParent;
+					break;
+					}
+
+				currentParent=VisualTreeHelper.GetParent ( currentParent );
+
+				} while ( currentParent!=null );
+
+			return foundParent;
+			}
 
 		private static void SetGridBackground ( Grid grid )
 			{
@@ -127,14 +95,14 @@ where T : DependencyObject
 		GridLocation activeCell;
 		private void SetActiveCell ( GridLocation gridLocation )
 			{
-			Grid.SetColumn ( this , gridLocation.Column );
-			Grid.SetRow ( this , gridLocation.Row );
+			Grid.SetColumn ( Frame , gridLocation.Column );
+			Grid.SetRow ( Frame , gridLocation.Row );
 			activeCell=gridLocation;
 			}
 		private void SetActiveCell ( )
 			{
-			activeCell.Column=Grid.GetColumn ( this );
-			activeCell.Row=Grid.GetRow ( this );
+			activeCell.Column=Grid.GetColumn ( Frame );
+			activeCell.Row=Grid.GetRow ( Frame );
 			}
 		private GridLocation GetActiveCell ( ) { return activeCell; }
 
@@ -150,13 +118,13 @@ where T : DependencyObject
 			spannumber.Row=Math.Abs ( delta.Row )+1;
 			spannumber.Column=Math.Abs ( delta.Column )+1;
 
-			Grid.SetColumn ( this , spanstart.Column );
-			Grid.SetRow ( this , spanstart.Row );
+			Grid.SetColumn ( Frame , spanstart.Column );
+			Grid.SetRow ( Frame , spanstart.Row );
 
-			Grid.SetColumnSpan ( this , spannumber.Column );
-			Grid.SetRowSpan ( this , spannumber.Row );
+			Grid.SetColumnSpan ( Frame , spannumber.Column );
+			Grid.SetRowSpan ( Frame , spannumber.Row );
 
-			this.Focus ( );
+			Frame.Focus ( );
 			}
 		#endregion
 
@@ -169,7 +137,7 @@ where T : DependencyObject
 			GridLocation mouseLocation;
 			mouseLocation=GetMouseLocation ( e.GetPosition ( MyPanel ) );
 			SetActiveCell ( mouseLocation );
-			this.Focus ( );
+			Frame.Focus ( );
 			}
 		private GridLocation GetMouseLocation ( Point point )
 			{
@@ -270,7 +238,7 @@ where T : DependencyObject
 		private GridLocation ShiftTracker;
 		private void SelectionPassingToKeyboard ( GridLocation FromMouse )
 			{
-			if ( Grid.GetRowSpan ( this )>1||Grid.GetColumnSpan ( this )>1 )
+			if ( Grid.GetRowSpan ( Frame )>1||Grid.GetColumnSpan ( Frame )>1 )
 				{
 				ShiftTracker=FromMouse;
 				}
@@ -289,20 +257,20 @@ where T : DependencyObject
 			switch ( e.Key )
 				{
 				case System.Windows.Input.Key.Left:
-					Grid.SetColumn ( this , Grid.GetColumn ( this )-1 );
+					Grid.SetColumn ( Frame , Grid.GetColumn ( Frame )-1 );
 					break;
 				case System.Windows.Input.Key.Up:
-					Grid.SetRow ( this , Grid.GetRow ( this )-1 );
+					Grid.SetRow ( Frame , Grid.GetRow ( Frame )-1 );
 					break;
 				case System.Windows.Input.Key.Right:
-					Grid.SetColumn ( this , Grid.GetColumn ( this )+1 );
+					Grid.SetColumn ( Frame , Grid.GetColumn ( Frame )+1 );
 					break;
 				case System.Windows.Input.Key.Down:
-					Grid.SetRow ( this , Grid.GetRow ( this )+1 );
+					Grid.SetRow ( Frame , Grid.GetRow ( Frame )+1 );
 					break;
 				}
-			actualLocation.Row=Grid.GetRow ( this );
-			actualLocation.Column=Grid.GetColumn ( this );
+			actualLocation.Row=Grid.GetRow ( Frame );
+			actualLocation.Column=Grid.GetColumn ( Frame );
 			return actualLocation;
 			}
 		private void MoveCursor ( object sender , System.Windows.Input.KeyEventArgs e )
@@ -337,7 +305,7 @@ where T : DependencyObject
 						if ( actualLocation.Row>MyPanel.RowDefinitions.Count-1 ) { actualLocation.Row=MyPanel.RowDefinitions.Count-1; }
 						if ( actualLocation.Column>MyPanel.ColumnDefinitions.Count-1 ) { actualLocation.Column=MyPanel.ColumnDefinitions.Count-1; }
 						SetActiveCell ( actualLocation );
-						this.Focus ( );
+						Frame.Focus ( );
 						e.Handled=true;
 						}
 
@@ -366,7 +334,7 @@ where T : DependencyObject
 
 				ShiftTracker=actualLocation;
 				RenderTransformCursor ( ShiftTracker );
-				this.Focus ( );
+				Frame.Focus ( );
 				e.Handled=true;
 				}
 
