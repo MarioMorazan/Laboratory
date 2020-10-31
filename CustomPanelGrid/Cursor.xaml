@@ -33,7 +33,7 @@
 			<ColumnDefinition/>
 			<ColumnDefinition/>
 		</Grid.ColumnDefinitions>
-
+		<TextBox Grid.Row="5" Grid.Column="8"/>
 		<Border x:Name="Frame" BorderBrush="#d932a852" BorderThickness="2" Focusable="True" Background="#5932a852"/>
 
 	</Grid>

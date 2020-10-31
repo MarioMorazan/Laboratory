@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -23,17 +24,23 @@ namespace CustomPanelGrid
 			catch ( System.Exception )
 				{
 
+				//In case it doesnt find parent
 
 				}
-
 			SetGridBackground ( MyPanel );
 
-			MyPanel.PreviewMouseLeftButtonDown+=FrameMoveOnClick;
+
+
+			MyPanel.MouseLeftButtonDown+=FrameMoveOnClick;
 			MyPanel.MouseLeftButtonUp+=MouseLeftButtonRelease;
+			MyPanel.MouseLeave+=OnMouseLeaveGrid;
+			MyPanel.PreviewMouseLeftButtonDown+=MoveFrameToMouse;
+
 			//Cursor Name=Frame
 			this.PreviewKeyDown+=MoveCursor;
-			this.MouseLeftButtonDown+=MouseLeftButtonHold;
+			this.KeyUp+=OnLeftShiftRealease;
 
+			ShiftTracker=new GridLocation { Row=-1 , Column=-1 };
 			}
 
 		#region Parent Grid Setup
@@ -66,6 +73,9 @@ namespace CustomPanelGrid
 			}
 		#endregion
 
+		#region Local Modules
+
+
 		internal struct GridLocation
 			{
 			public int Row;
@@ -78,6 +88,8 @@ namespace CustomPanelGrid
 					Column=A.Column-B.Column
 					};
 				}
+
+
 
 			}
 		GridLocation activeCell;
@@ -94,7 +106,152 @@ namespace CustomPanelGrid
 			}
 		private GridLocation GetActiveCell ( ) { return activeCell; }
 
+		private void RenderTransformCursor ( GridLocation finalLocation )
+			{
+			GridLocation delta = GridLocation.Substraction ( GetActiveCell ( ) , finalLocation );
 
+			GridLocation spanstart;
+			GridLocation spannumber;
+			if ( finalLocation.Row<GetActiveCell ( ).Row ) { spanstart.Row=finalLocation.Row; } else { spanstart.Row=GetActiveCell ( ).Row; }
+			if ( finalLocation.Column<GetActiveCell ( ).Column ) { spanstart.Column=finalLocation.Column; } else { spanstart.Column=GetActiveCell ( ).Column; }
+
+			spannumber.Row=Math.Abs ( delta.Row )+1;
+			spannumber.Column=Math.Abs ( delta.Column )+1;
+
+			Grid.SetColumn ( Frame , spanstart.Column );
+			Grid.SetRow ( Frame , spanstart.Row );
+
+			Grid.SetColumnSpan ( Frame , spannumber.Column );
+			Grid.SetRowSpan ( Frame , spannumber.Row );
+
+			Frame.Focus ( );
+			}
+		#endregion
+
+		#region Mouse Behaviour
+		private delegate void UpdateMousePosition ( GridLocation location );
+		private bool MouseLeftClickHolded;
+		private void MoveFrameToMouse ( object sender , MouseButtonEventArgs e )
+			{
+			RenderTransformCursor ( GetActiveCell ( ) );
+			GridLocation mouseLocation;
+			mouseLocation=GetMouseLocation ( e.GetPosition ( MyPanel ) );
+			SetActiveCell ( mouseLocation );
+			Frame.Focus ( );
+			}
+		private GridLocation GetMouseLocation ( Point point )
+			{
+			int row = 0;
+			int col = 0;
+			double accumulatedHeight = 0.0;
+			double accumulatedWidth = 0.0;
+			// calc row mouse was over
+			foreach ( var rowDefinition in MyPanel.RowDefinitions )
+				{
+				accumulatedHeight+=rowDefinition.ActualHeight;
+				if ( accumulatedHeight>=point.Y )
+					break;
+				row++;
+				}
+			// calc col mouse was over
+			foreach ( var columnDefinition in MyPanel.ColumnDefinitions )
+				{
+				accumulatedWidth+=columnDefinition.ActualWidth;
+				if ( accumulatedWidth>=point.X )
+					break;
+				col++;
+				}
+
+			GridLocation mouseLocation;
+			mouseLocation.Column=col;
+			mouseLocation.Row=row;
+			return mouseLocation;
+			}
+		private void FrameMoveOnClick ( object sender , System.Windows.Input.MouseButtonEventArgs e )
+			{
+			MouseLeftClickHolded=true;
+			new Thread ( ( ) =>
+			{
+				Thread.CurrentThread.IsBackground=true;
+				MouseLocationLooper ( );
+			} ).Start ( );
+
+			}
+		private void MouseLeftButtonRelease ( object sender , MouseButtonEventArgs e )
+			{
+			MouseLeftClickHolded=false;
+			}
+		private void MouseLocationLooper ( )
+			{
+			int i = 1;
+			do
+				{
+				Point point;
+				MyPanel.Dispatcher.Invoke ( ( ) =>
+				{
+					point=Mouse.GetPosition ( MyPanel );
+				} );
+				int row = 0;
+				int col = 0;
+				double accumulatedHeight = 0.0;
+				double accumulatedWidth = 0.0;
+				// calc row mouse was over
+				foreach ( var rowDefinition in MyPanel.RowDefinitions )
+					{
+					accumulatedHeight+=rowDefinition.ActualHeight;
+					if ( accumulatedHeight>=point.Y )
+						break;
+					row++;
+					}
+				// calc col mouse was over
+				foreach ( var columnDefinition in MyPanel.ColumnDefinitions )
+					{
+					accumulatedWidth+=columnDefinition.ActualWidth;
+					if ( accumulatedWidth>=point.X )
+						break;
+					col++;
+					}
+
+				GridLocation mouseLocation;
+				mouseLocation.Column=col;
+				mouseLocation.Row=row;
+				Dispatcher.BeginInvoke ( new UpdateMousePosition ( RenderTransformCursor ) , mouseLocation );
+				Dispatcher.BeginInvoke ( new UpdateMousePosition ( SelectionPassingToKeyboard ) , mouseLocation );
+				if ( i==1 )
+					{
+					Dispatcher.BeginInvoke ( new UpdateMousePosition ( SetActiveCell ) , mouseLocation );
+					}
+				i++;
+
+				Thread.Sleep ( 20 );
+				} while ( MouseLeftClickHolded );
+			}
+
+		private void OnMouseLeaveGrid ( object sender , MouseEventArgs e )
+			{
+			MouseLeftClickHolded=false;
+			}
+		#endregion
+
+		#region KeyBoard Behaviour
+		private delegate void ShiftDown ( GridLocation location );
+		private GridLocation ShiftTracker;
+		private void SelectionPassingToKeyboard ( GridLocation FromMouse )
+			{
+			if ( Grid.GetRowSpan ( Frame )>1||Grid.GetColumnSpan ( Frame )>1 )
+				{
+				ShiftTracker=FromMouse;
+				}
+			}
+		private void OnLeftShiftRealease ( object sender , KeyEventArgs e )
+			{
+			if ( Keyboard.IsKeyUp ( Key.LeftShift ) )
+				{
+				ShiftTracker.Row=-1;
+				ShiftTracker.Column=-1;
+				}
+
+			}
 		private GridLocation MoveCursor ( System.Windows.Input.KeyEventArgs e , GridLocation actualLocation )
 			{
 			switch ( e.Key )
@@ -118,105 +275,82 @@ namespace CustomPanelGrid
 			}
 		private void MoveCursor ( object sender , System.Windows.Input.KeyEventArgs e )
 			{
-			GridLocation actualLocation = GetActiveCell ( );
-
-			if ( MyPanel.RowDefinitions.Count-1>=actualLocation.Row
-				&MyPanel.ColumnDefinitions.Count-1>=actualLocation.Column
-				&actualLocation.Row>=0
-				&actualLocation.Column>=0 )
+			if ( ShiftTracker.Row==-1||ShiftTracker.Column==-1 ) { ShiftTracker=GetActiveCell ( ); }
+			if ( !Keyboard.IsKeyDown ( Key.LeftShift )
+				&&( Keyboard.IsKeyDown ( Key.Up )
+				||Keyboard.IsKeyDown ( Key.Down )
+				||Keyboard.IsKeyDown ( Key.Left )
+				||Keyboard.IsKeyDown ( Key.Right )
+				) )
 				{
-				try
-					{
-					actualLocation=MoveCursor ( e , actualLocation );
-					}
-				catch ( System.Exception ex )
-					{
-					SetActiveCell ( actualLocation );
-					}
-				finally
-					{
+				RenderTransformCursor ( GetActiveCell ( ) );
+				GridLocation actualLocation = GetActiveCell ( );
 
-					if ( actualLocation.Row>MyPanel.RowDefinitions.Count-1 ) { actualLocation.Row=MyPanel.RowDefinitions.Count-1; }
-					if ( actualLocation.Column>MyPanel.ColumnDefinitions.Count-1 ) { actualLocation.Column=MyPanel.ColumnDefinitions.Count-1; }
-					SetActiveCell ( actualLocation );
-					Frame.Focus ( );
+				if ( MyPanel.RowDefinitions.Count-1>=actualLocation.Row
+					&MyPanel.ColumnDefinitions.Count-1>=actualLocation.Column
+					&actualLocation.Row>=0
+					&actualLocation.Column>=0 )
+					{
+					try
+						{
+						actualLocation=MoveCursor ( e , actualLocation );
+						}
+					catch ( System.Exception )
+						{
+						SetActiveCell ( actualLocation );
+						}
+					finally
+						{
+
+						if ( actualLocation.Row>MyPanel.RowDefinitions.Count-1 ) { actualLocation.Row=MyPanel.RowDefinitions.Count-1; }
+						if ( actualLocation.Column>MyPanel.ColumnDefinitions.Count-1 ) { actualLocation.Column=MyPanel.ColumnDefinitions.Count-1; }
+						SetActiveCell ( actualLocation );
+						Frame.Focus ( );
+						e.Handled=true;
+						}
+
 
 					}
+
 				}
-			e.Handled=true;
-			}
-
-		private static GridLocation GetMouseLocation ( Grid panel )
-			{
-			var point = Mouse.GetPosition ( panel );
-			int row = 0;
-			int col = 0;
-			double accumulatedHeight = 0.0;
-			double accumulatedWidth = 0.0;
-			// calc row mouse was over
-			foreach ( var rowDefinition in panel.RowDefinitions )
+			if ( Keyboard.IsKeyDown ( Key.LeftShift ) )
 				{
-				accumulatedHeight+=rowDefinition.ActualHeight;
-				if ( accumulatedHeight>=point.Y )
-					break;
-				row++;
+
+				GridLocation actualLocation = ShiftTracker;
+
+				if ( Keyboard.IsKeyDown ( Key.LeftShift )&&Keyboard.IsKeyDown ( Key.Left ) )
+					{ actualLocation.Column=actualLocation.Column-1; }
+				if ( Keyboard.IsKeyDown ( Key.LeftShift )&&Keyboard.IsKeyDown ( Key.Up ) )
+					{ actualLocation.Row=actualLocation.Row-1; }
+				if ( Keyboard.IsKeyDown ( Key.LeftShift )&&Keyboard.IsKeyDown ( Key.Right ) )
+					{ actualLocation.Column=actualLocation.Column+1; }
+				if ( Keyboard.IsKeyDown ( Key.LeftShift )&&Keyboard.IsKeyDown ( Key.Down ) )
+					{ actualLocation.Row=actualLocation.Row+1; }
+
+				if ( actualLocation.Row<0 ) { actualLocation.Row=0; }
+				if ( actualLocation.Column<0 ) { actualLocation.Column=0; }
+				if ( actualLocation.Row>MyPanel.RowDefinitions.Count-1 ) { actualLocation.Row=MyPanel.RowDefinitions.Count-1; }
+				if ( actualLocation.Column>MyPanel.ColumnDefinitions.Count-1 ) { actualLocation.Column=MyPanel.ColumnDefinitions.Count-1; }
+
+				ShiftTracker=actualLocation;
+				RenderTransformCursor ( ShiftTracker );
+				Frame.Focus ( );
+				e.Handled=true;
 				}
-			// calc col mouse was over
-			foreach ( var columnDefinition in panel.ColumnDefinitions )
-				{
-				accumulatedWidth+=columnDefinition.ActualWidth;
-				if ( accumulatedWidth>=point.X )
-					break;
-				col++;
-				}
-
-			GridLocation mouseLocation;
-			mouseLocation.Column=col;
-			mouseLocation.Row=row;
-			return mouseLocation;
-			}
-		private void FrameMoveOnClick ( object sender , System.Windows.Input.MouseButtonEventArgs e )
-			{
-			MoveFrameToMouse ( );
-			}
-		private void MoveFrameToMouse ( )
-			{
-			GridLocation mouseLocation;
-			mouseLocation=GetMouseLocation ( MyPanel );
-			SetActiveCell ( mouseLocation );
-			Frame.Focus ( );
-			}
-
-		private void MouseLeftButtonHold ( object sender , MouseButtonEventArgs e )
-			{
 
 			}
-		private void MouseLeftButtonRelease ( object sender , MouseButtonEventArgs e )
-			{
+		#endregion
 
-			}
-
-		private void RenderTransformCursor ( GridLocation finalLocation )
-			{
-			GridLocation delta = GridLocation.Substraction ( GetActiveCell ( ) , finalLocation );
-
-			GridLocation spanstart;
-			GridLocation spannumber;
-			if ( delta.Row>0 ) { spanstart.Row=GetActiveCell ( ).Row; } else { spanstart.Row=GetActiveCell ( ).Row; }
-			if ( delta.Column>0 ) { spanstart.Column=GetActiveCell ( ).Column; } else { spanstart.Column=GetActiveCell ( ).Column; }
-			spannumber.Row=Math.Abs ( delta.Row )+1;
-			spannumber.Column=Math.Abs ( delta.Column )+1;
-
-			Grid.SetColumnSpan ( Frame , spannumber.Column );
-			Grid.SetRowSpan ( Frame , spannumber.Row );
-			}
 
 
 
 		}
 
-	public class CurorErrorHandler
+
+
+	public class CursorErrorHandler
 		{
 
 		}
+
 	}
